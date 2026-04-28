@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Arbeitszeit">
+<meta name="theme-color" content="#3266ad" id="theme-color-meta">
+<title>Arbeitszeit Tracker</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue:#3266ad;--blue-dark:#2555a0;
+  --green:#1D9E75;--green-dark:#0F6E56;
+  --bg:#f5f5f5;--card:#ffffff;--card2:#f0f2f5;
+  --text:#1a1a1a;--text2:#6b7280;
+  --border:rgba(0,0,0,0.10);--border2:rgba(0,0,0,0.18);
+  --radius:12px;--radius-sm:8px;
+  --accent:#3266ad;--accent-dark:#2555a0;
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#0f1117;--card:#1c1f26;--card2:#252830;--text:#f0f0f0;--text2:#9ca3af;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);}
+}
+html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);}
+body{display:flex;justify-content:center;}
+.app{width:100%;max-width:430px;min-height:100vh;background:var(--card);display:flex;flex-direction:column;box-shadow:0 0 40px rgba(0,0,0,0.12);}
+
+/* HEADER */
+.header{color:white;padding:48px 16px 12px;flex-shrink:0;transition:background 0.3s;}
+.header-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.header-left h1{font-size:16px;font-weight:600;}
+.header-left .sub{font-size:11px;opacity:0.78;margin-top:2px;}
+.lohn-badge{background:rgba(255,255,255,0.2);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0;}
+
+/* PROFILE TOGGLE */
+.profile-toggle{display:flex;margin-top:10px;background:rgba(255,255,255,0.15);border-radius:20px;padding:2px;gap:2px;}
+.profile-toggle button{flex:1;padding:5px 8px;border:none;border-radius:18px;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:rgba(255,255,255,0.75);font-family:inherit;transition:all 0.2s;}
+.profile-toggle button.active{background:white;color:var(--accent);}
+
+/* NAV */
+.nav{display:flex;border-bottom:1px solid var(--border);background:var(--card);flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.nav::-webkit-scrollbar{display:none;}
+.nav button{flex:1;min-width:60px;padding:10px 4px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;font-family:inherit;transition:all 0.15s;}
+.nav button.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+
+/* SECTIONS */
+.section{display:none;padding:14px;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.section.active{display:block;}
+
+/* TIMER */
+.timer-card{background:var(--card2);border-radius:var(--radius);padding:20px 16px;text-align:center;margin-bottom:14px;}
+.timer-display{font-size:42px;font-weight:300;letter-spacing:3px;margin:6px 0;font-variant-numeric:tabular-nums;color:var(--text);transition:color 0.3s;}
+.timer-status{font-size:12px;color:var(--text2);}
+.timer-earn{font-size:15px;color:var(--green);font-weight:600;margin-top:6px;}
+.timer-running .timer-display{color:var(--accent);}
+
+/* FORMS */
+.form-row{margin-bottom:11px;}
+.form-row label{font-size:11px;color:var(--text2);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px;font-weight:500;}
+.form-row input,.form-row select{width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:15px;background:var(--card);color:var(--text);font-family:inherit;-webkit-appearance:none;appearance:none;}
+.form-row input:focus,.form-row select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(50,102,173,0.15);}
+.form-row input[type="number"]{-moz-appearance:textfield;}
+.form-row input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;}
+
+/* BUTTONS */
+.btn-row{display:flex;gap:8px;margin-top:12px;}
+.btn{flex:1;padding:11px 10px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--card);font-size:13px;cursor:pointer;color:var(--text);font-family:inherit;transition:all 0.15s;font-weight:500;}
+.btn:hover{background:var(--card2);}
+.btn:active{transform:scale(0.97);}
+.btn:disabled{opacity:0.38;cursor:default;transform:none;}
+.btn.primary{background:var(--accent);color:white;border-color:var(--accent);}
+.btn.primary:hover{filter:brightness(0.92);}
+.btn.green{background:var(--green);color:white;border-color:var(--green);}
+.btn.green:hover{background:var(--green-dark);}
+.btn.full{width:100%;flex:none;}
+
+/* PREVIEW PILL */
+.preview-pill{background:var(--card2);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:12px;display:none;border-left:3px solid var(--green);}
+.preview-pill b{color:var(--green);}
+.rounding-note{font-size:11px;color:var(--text2);font-style:italic;margin-top:3px;display:block;}
+
+/* ENTRIES */
+.entry{display:flex;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:7px;gap:8px;}
+.entry-main{flex:1;min-width:0;}
+.entry-date{font-weight:600;font-size:13px;}
+.entry-times{color:var(--text2);font-size:11px;margin-top:2px;}
+.entry-right{text-align:right;flex-shrink:0;}
+.entry-hours{font-size:14px;font-weight:700;color:var(--green);}
+.entry-dec{font-size:11px;color:var(--text2);}
+.entry-lohn{font-size:11px;color:var(--text2);margin-top:1px;}
+.entry-del{background:none;border:none;color:var(--text2);cursor:pointer;font-size:15px;padding:4px;flex-shrink:0;}
+
+/* SUM ROW */
+.sum-row{background:var(--card2);border-radius:var(--radius-sm);padding:11px 14px;margin-top:4px;font-size:13px;line-height:1.6;}
+.sum-row b{color:var(--text);}
+.sum-green{color:var(--green);font-weight:700;}
+
+/* AUSWERTUNG */
+.lohn-hero{background:linear-gradient(135deg,var(--green) 0%,var(--green-dark) 100%);border-radius:var(--radius);padding:18px;margin-bottom:14px;color:white;}
+.lohn-hero-label{font-size:11px;opacity:0.85;text-transform:uppercase;letter-spacing:0.5px;font-weight:500;}
+.lohn-hero-val{font-size:36px;font-weight:300;margin:4px 0 2px;letter-spacing:-1px;}
+.lohn-hero-sub{font-size:12px;opacity:0.8;}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.metric{background:var(--card2);border-radius:var(--radius-sm);padding:12px;text-align:center;}
+.metric-val{font-size:19px;font-weight:700;color:var(--text);}
+.metric-val-dec{font-size:12px;color:var(--text2);margin-top:1px;}
+.metric-label{font-size:11px;color:var(--text2);margin-top:3px;}
+
+/* PROFIL */
+.profil-box{background:var(--card2);border-radius:var(--radius);padding:14px;margin-bottom:14px;}
+.profil-box h3{font-size:11px;font-weight:600;margin-bottom:12px;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;}
+.save-msg{font-size:13px;color:var(--green);text-align:center;margin-top:10px;min-height:18px;font-weight:500;}
+.profil-switch-row{display:flex;gap:8px;margin-bottom:14px;}
+
+/* MISC */
+.month-row{margin-bottom:12px;}
+.month-row select{width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--card);color:var(--text);font-size:14px;font-family:inherit;-webkit-appearance:none;appearance:none;}
+.divider{height:1px;background:var(--border);margin:14px 0;}
+.empty-state{text-align:center;color:var(--text2);padding:32px 16px;font-size:14px;}
+.hint{font-size:11px;color:var(--text2);text-align:center;margin-top:10px;line-height:1.6;}
+.export-row{display:flex;gap:8px;margin-top:8px;}
+.tag-rounded{display:inline-block;font-size:9px;padding:1px 6px;border-radius:8px;background:rgba(50,102,173,0.12);color:var(--accent);font-weight:600;margin-left:5px;vertical-align:middle;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header" id="app-header">
+    <div class="header-top">
+      <div class="header-left">
+        <h1 id="hdr-name">Arbeitszeit Tracker</h1>
+        <div class="sub" id="hdr-sub">—</div>
+      </div>
+      <div class="lohn-badge" id="hdr-badge">Profil einrichten</div>
+    </div>
+    <div class="profile-toggle">
+      <button id="tog-0" class="active" onclick="switchProfile(0)">Firma A</button>
+      <button id="tog-1" onclick="switchProfile(1)">Firma B</button>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav">
+    <button class="active" onclick="showTab('timer',this)">Timer</button>
+    <button onclick="showTab('manuell',this)">Manuell</button>
+    <button onclick="showTab('eintraege',this)">Einträge</button>
+    <button onclick="showTab('auswertung',this)">Auswertung</button>
+    <button onclick="showTab('profil',this)">⚙ Profil</button>
+  </div>
+
+  <!-- TIMER -->
+  <div id="tab-timer" class="section active">
+    <div class="timer-card" id="timer-card">
+      <div class="timer-status" id="timer-status">Nicht gestartet</div>
+      <div class="timer-display" id="timer-display">00:00:00</div>
+      <div class="timer-earn" id="timer-earn">Verdient: 0,00 €</div>
+    </div>
+    <div class="form-row"><label>Datum</label><input type="date" id="timer-date"></div>
+    <div class="btn-row">
+      <button class="btn primary" id="btn-start" onclick="startTimer()">▶ Start</button>
+      <button class="btn" id="btn-stop" onclick="stopTimer()" disabled>■ Stop &amp; Speichern</button>
+    </div>
+    <div class="btn-row" style="margin-top:0">
+      <button class="btn full" onclick="resetTimer()">Zurücksetzen</button>
+    </div>
+    <div class="hint" id="timer-hint">—</div>
+  </div>
+
+  <!-- MANUELL -->
+  <div id="tab-manuell" class="section">
+    <div class="form-row"><label>Datum</label><input type="date" id="m-date"></div>
+    <div class="form-row"><label>Beginn</label><input type="time" id="m-start" oninput="updatePreview()"></div>
+    <div class="form-row"><label>Ende</label><input type="time" id="m-end" oninput="updatePreview()"></div>
+    <div class="form-row"><label>Pause (Minuten)</label><input type="number" id="m-pause" value="15" min="0" oninput="updatePreview()"></div>
+    <div class="preview-pill" id="m-preview">
+      <b id="m-prev-h"></b> &nbsp;·&nbsp; <span id="m-prev-dec" style="color:var(--text2)"></span><br>
+      <span id="m-prev-lohn" style="color:var(--text2);font-size:12px;"></span>
+      <span class="rounding-note" id="m-rounding-note"></span>
+    </div>
+    <button class="btn primary full" onclick="addManual()">Eintrag speichern</button>
+  </div>
+
+  <!-- EINTRÄGE -->
+  <div id="tab-eintraege" class="section">
+    <div class="month-row"><select id="filter-month" onchange="renderEntries()"><option value="">Alle Einträge</option></select></div>
+    <div id="entries-list"></div>
+    <div class="sum-row" id="entries-sum" style="display:none"></div>
+  </div>
+
+  <!-- AUSWERTUNG -->
+  <div id="tab-auswertung" class="section">
+    <div class="month-row"><select id="auswert-month" onchange="renderAuswertung()"><option value="">Aktueller Monat</option></select></div>
+    <div class="lohn-hero">
+      <div class="lohn-hero-label">Brutto-Verdienst</div>
+      <div class="lohn-hero-val" id="aus-brutto">0,00 €</div>
+      <div class="lohn-hero-sub" id="aus-sub">—</div>
+    </div>
+    <div class="metric-grid">
+      <div class="metric">
+        <div class="metric-val" id="sum-tage">0</div>
+        <div class="metric-label">Arbeitstage</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val" id="sum-stunden">0:00h</div>
+        <div class="metric-val-dec" id="sum-stunden-dec">0,0h</div>
+        <div class="metric-label">Gesamtstunden</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val" id="sum-schnitt">0:00h</div>
+        <div class="metric-val-dec" id="sum-schnitt-dec">0,0h</div>
+        <div class="metric-label">Ø pro Tag</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val" id="sum-tagslohn">0,00 €</div>
+        <div class="metric-label">Ø Tageslohn</div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="export-row">
+      <button class="btn primary" style="flex:1" onclick="exportCSV()">CSV exportieren</button>
+      <button class="btn green" style="flex:1" onclick="exportPDF()">PDF exportieren</button>
+    </div>
+  </div>
+
+  <!-- PROFIL -->
+  <div id="tab-profil" class="section">
+    <div class="profil-switch-row">
+      <button class="btn primary" id="pbtn-0" style="flex:1" onclick="switchProfile(0);renderProfilForm()">Profil A</button>
+      <button class="btn" id="pbtn-1" style="flex:1" onclick="switchProfile(1);renderProfilForm()">Profil B</button>
+    </div>
+    <div class="profil-box">
+      <h3 id="profil-edit-label">Profil A — Persönliche Daten</h3>
+      <div class="form-row"><label>Vor- und Nachname</label><input type="text" id="p-name" placeholder="z.B. Tobias Sucht"></div>
+      <div class="form-row"><label>Firma</label><input type="text" id="p-firma" placeholder="z.B. Muster GmbH"></div>
+    </div>
+    <div class="profil-box">
+      <h3>Vergütung &amp; Zeiten</h3>
+      <div class="form-row"><label>Brutto-Stundenlohn (€)</label><input type="number" id="p-lohn" placeholder="z.B. 15.50" step="0.01" min="0"></div>
+      <div class="form-row"><label>Standard-Pausendauer (Minuten)</label><input type="number" id="p-pause" placeholder="15" min="0"></div>
+      <div class="form-row">
+        <label>Abrechnungsmodus</label>
+        <select id="p-rounding">
+          <option value="exact">Minutengenau</option>
+          <option value="15min">15-Minuten-Blöcke (kaufmännisch)</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn primary full" onclick="saveProfil()">Profil speichern</button>
+    <div class="save-msg" id="save-msg"></div>
+    <div class="divider"></div>
+    <button class="btn full" style="color:#c0392b;border-color:#c0392b" onclick="clearCurrentEntries()">Alle Einträge dieses Profils löschen</button>
+  </div>
+
+</div>
+
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+/* ===================== STATE ===================== */
+let activeProfile = parseInt(localStorage.getItem('az_ap') || '0');
+
+let profiles = JSON.parse(localStorage.getItem('az_profiles') || 'null') || [
+  {name:'', firma:'Firma A', lohn:0, pause:15, rounding:'exact'},
+  {name:'', firma:'Firma B', lohn:0, pause:15, rounding:'exact'}
+];
+
+// entries: array of 2 arrays
+let entries = (function(){
+  const raw = localStorage.getItem('az_entries3');
+  if(raw){ try{ const p=JSON.parse(raw); if(Array.isArray(p)&&Array.isArray(p[0])) return p; }catch(e){} }
+  return [[],[]];
+})();
+
+let timerInterval=null, timerStart=null, timerRunning=false;
+
+/* ===================== HELPERS ===================== */
+const P  = () => profiles[activeProfile];
+const E  = () => entries[activeProfile];
+
+function save(){
+  localStorage.setItem('az_ap', String(activeProfile));
+  localStorage.setItem('az_profiles', JSON.stringify(profiles));
+  localStorage.setItem('az_entries3', JSON.stringify(entries));
+}
+
+function fmtH(h){
+  const hh=Math.floor(h), mm=Math.round((h-hh)*60);
+  return hh+':'+String(mm).padStart(2,'0');
+}
+function fmtDec(h){
+  return h.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtE(v){
+  return v.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function calcRaw(start,end,pauseMin){
+  const [sh,sm]=start.split(':').map(Number);
+  const [eh,em]=end.split(':').map(Number);
+  return Math.max(0,((eh*60+em)-(sh*60+sm)-pauseMin)/60);
+}
+function applyRound(h){
+  return P().rounding==='15min' ? Math.round(h*4)/4 : h;
+}
+function todayStr(){ return new Date().toISOString().split('T')[0]; }
+function curMonth(){ return new Date().toISOString().substring(0,7); }
+function monthLabel(m){
+  const [y,mo]=m.split('-');
+  return new Date(y,mo-1,1).toLocaleDateString('de-DE',{month:'long',year:'numeric'});
+}
+
+/* ===================== ACCENT / THEME ===================== */
+const ACCENTS = ['#3266ad','#1D9E75'];
+const ACCENTS_DARK = ['#2555a0','#0F6E56'];
+
+function applyAccent(){
+  const c = ACCENTS[activeProfile];
+  document.documentElement.style.setProperty('--accent', c);
+  document.documentElement.style.setProperty('--accent-dark', ACCENTS_DARK[activeProfile]);
+  document.getElementById('app-header').style.background = c;
+  document.getElementById('theme-color-meta').setAttribute('content', c);
+  // toggle button active color fix
+  document.querySelectorAll('.profile-toggle button.active').forEach(b=>b.style.color=c);
+}
+
+/* ===================== PROFILE SWITCH ===================== */
+function switchProfile(idx){
+  activeProfile = idx;
+  save();
+  applyAccent();
+  [0,1].forEach(i=>{
+    document.getElementById('tog-'+i).classList.toggle('active', i===idx);
+    document.getElementById('tog-'+i).style.color = i===idx ? ACCENTS[idx] : '';
+    if(document.getElementById('pbtn-'+i)){
+      document.getElementById('pbtn-'+i).classList.toggle('primary', i===idx);
+      document.getElementById('pbtn-'+i).classList.toggle('btn', true);
+    }
+  });
+  document.getElementById('tog-'+idx).style.color = ACCENTS[idx];
+  updateHeader();
+  updateTimerHint();
+  document.getElementById('m-pause').value = P().pause||15;
+  // refresh active tab
+  const activeTab = document.querySelector('.section.active');
+  if(activeTab){
+    const id = activeTab.id.replace('tab-','');
+    if(id==='eintraege'){populateSelects();renderEntries();}
+    if(id==='auswertung'){populateSelects();renderAuswertung();}
+    if(id==='profil') renderProfilForm();
+  }
+}
+
+/* ===================== HEADER ===================== */
+function updateHeader(){
+  const p=P();
+  document.getElementById('hdr-name').textContent = p.name || p.firma || 'Arbeitszeit Tracker';
+  document.getElementById('hdr-sub').textContent =
+    new Date().toLocaleDateString('de-DE',{month:'long',year:'numeric'}) + (p.firma?' · '+p.firma:'');
+  document.getElementById('hdr-badge').textContent = p.lohn ? fmtE(p.lohn)+' €/h' : 'Profil einrichten';
+  document.getElementById('tog-0').textContent = profiles[0].firma || 'Firma A';
+  document.getElementById('tog-1').textContent = profiles[1].firma || 'Firma B';
+}
+
+function updateTimerHint(){
+  const p=P();
+  document.getElementById('timer-hint').textContent =
+    'Pause ('+p.pause+' min) wird abgezogen · Modus: '+(p.rounding==='15min'?'15-Min-Blöcke (kaufm.)':'minutengenau');
+}
+
+/* ===================== TAB NAV ===================== */
+function showTab(name, btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='eintraege'){populateSelects();renderEntries();}
+  if(name==='auswertung'){populateSelects();renderAuswertung();}
+  if(name==='profil') renderProfilForm();
+}
+
+/* ===================== PROFIL FORM ===================== */
+function renderProfilForm(){
+  const p=P();
+  const lbl = activeProfile===0 ? 'A' : 'B';
+  document.getElementById('profil-edit-label').textContent = 'Profil '+lbl+' — Daten';
+  document.getElementById('p-name').value    = p.name||'';
+  document.getElementById('p-firma').value   = p.firma||'';
+  document.getElementById('p-lohn').value    = p.lohn||'';
+  document.getElementById('p-pause').value   = p.pause||15;
+  document.getElementById('p-rounding').value= p.rounding||'exact';
+  [0,1].forEach(i=>{
+    const b=document.getElementById('pbtn-'+i);
+    b.classList.toggle('primary', i===activeProfile);
+    b.classList.remove('btn'); b.classList.add('btn'); // ensure class
+  });
+}
+
+function saveProfil(){
+  profiles[activeProfile]={
+    name:    document.getElementById('p-name').value.trim(),
+    firma:   document.getElementById('p-firma').value.trim(),
+    lohn:    parseFloat(document.getElementById('p-lohn').value)||0,
+    pause:   parseInt(document.getElementById('p-pause').value)||15,
+    rounding:document.getElementById('p-rounding').value,
+  };
+  save(); updateHeader(); updateTimerHint();
+  document.getElementById('m-pause').value = P().pause;
+  const msg=document.getElementById('save-msg');
+  msg.textContent='✓ Profil gespeichert';
+  setTimeout(()=>msg.textContent='',2500);
+}
+
+function clearCurrentEntries(){
+  if(confirm('Alle Einträge von "'+( P().firma||'Profil '+(activeProfile+1))+'" löschen?')){
+    entries[activeProfile]=[];
+    save();
+    alert('Gelöscht.');
+  }
+}
+
+/* ===================== TIMER ===================== */
+function startTimer(){
+  if(timerRunning) return;
+  timerStart=Date.now(); timerRunning=true;
+  document.getElementById('btn-start').disabled=true;
+  document.getElementById('btn-stop').disabled=false;
+  document.getElementById('timer-card').classList.add('timer-running');
+  document.getElementById('timer-status').textContent='Läuft seit '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+  timerInterval=setInterval(tickTimer,1000);
+}
+function tickTimer(){
+  const el=Math.floor((Date.now()-timerStart)/1000);
+  const h=Math.floor(el/3600),m=Math.floor((el%3600)/60),s=el%60;
+  document.getElementById('timer-display').textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  const rawH=Math.max(0,el/3600-(P().pause||15)/60);
+  const hours=applyRound(rawH);
+  document.getElementById('timer-earn').textContent='Verdient: '+fmtE(hours*(P().lohn||0))+' € ('+fmtDec(hours)+'h)';
+}
+function stopTimer(){
+  if(!timerRunning) return;
+  clearInterval(timerInterval); timerRunning=false;
+  const el=(Date.now()-timerStart)/1000;
+  const rawH=Math.max(0,el/3600-(P().pause||15)/60);
+  const hours=applyRound(rawH);
+  const date=document.getElementById('timer-date').value;
+  const startT=new Date(timerStart).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+  const endT=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+  entries[activeProfile].push({date,start:startT,end:endT,pause:P().pause||15,hours,rawHours:rawH});
+  entries[activeProfile].sort((a,b)=>a.date.localeCompare(b.date));
+  save(); populateSelects();
+  document.getElementById('timer-card').classList.remove('timer-running');
+  document.getElementById('timer-status').textContent='✓ '+fmtH(hours)+'h ('+fmtDec(hours)+'h) — '+fmtE(hours*(P().lohn||0))+' €';
+  document.getElementById('btn-start').disabled=false;
+  document.getElementById('btn-stop').disabled=true;
+}
+function resetTimer(){
+  clearInterval(timerInterval); timerRunning=false; timerStart=null;
+  document.getElementById('timer-display').textContent='00:00:00';
+  document.getElementById('timer-status').textContent='Nicht gestartet';
+  document.getElementById('timer-earn').textContent='Verdient: 0,00 €';
+  document.getElementById('timer-card').classList.remove('timer-running');
+  document.getElementById('btn-start').disabled=false;
+  document.getElementById('btn-stop').disabled=true;
+}
+
+/* ===================== MANUELL ===================== */
+function updatePreview(){
+  const s=document.getElementById('m-start').value;
+  const e=document.getElementById('m-end').value;
+  const p=parseInt(document.getElementById('m-pause').value)||0;
+  const pill=document.getElementById('m-preview');
+  if(!s||!e){pill.style.display='none';return;}
+  const rawH=calcRaw(s,e,p);
+  const h=applyRound(rawH);
+  const wasRounded=Math.abs(rawH-h)>0.001;
+  document.getElementById('m-prev-h').textContent=fmtH(h)+'h';
+  document.getElementById('m-prev-dec').textContent=fmtDec(h)+'h';
+  document.getElementById('m-prev-lohn').textContent=P().lohn ? fmtE(h*P().lohn)+' € Brutto' : '';
+  document.getElementById('m-rounding-note').textContent=wasRounded ? 'Gerundet von '+fmtH(rawH)+'h ('+fmtDec(rawH)+'h)' : '';
+  pill.style.display='block';
+}
+function addManual(){
+  const date=document.getElementById('m-date').value;
+  const start=document.getElementById('m-start').value;
+  const end=document.getElementById('m-end').value;
+  const pause=parseInt(document.getElementById('m-pause').value)||0;
+  if(!date||!start||!end){alert('Bitte alle Felder ausfüllen.');return;}
+  const rawH=calcRaw(start,end,pause);
+  const hours=applyRound(rawH);
+  entries[activeProfile].push({date,start,end,pause,hours,rawHours:rawH});
+  entries[activeProfile].sort((a,b)=>a.date.localeCompare(b.date));
+  save(); populateSelects();
+  document.getElementById('m-prev-h').textContent='✓ '+fmtH(hours)+'h gespeichert';
+  document.getElementById('m-prev-dec').textContent=fmtDec(hours)+'h';
+  document.getElementById('m-prev-lohn').textContent=P().lohn ? fmtE(hours*P().lohn)+' € Brutto' : '';
+  document.getElementById('m-preview').style.display='block';
+  setTimeout(()=>document.getElementById('m-preview').style.display='none',4000);
+}
+
+/* ===================== SELECTS ===================== */
+function populateSelects(){
+  const months=[...new Set(E().map(e=>e.date.substring(0,7)))].sort().reverse();
+  ['filter-month','auswert-month'].forEach(id=>{
+    const sel=document.getElementById(id),cur=sel.value;
+    sel.innerHTML='<option value="">Alle / Aktuell</option>';
+    months.forEach(m=>sel.innerHTML+=`<option value="${m}">${monthLabel(m)}</option>`);
+    if(months.includes(cur)) sel.value=cur;
+  });
+}
+
+/* ===================== ENTRIES ===================== */
+function renderEntries(){
+  const month=document.getElementById('filter-month').value;
+  const all=E();
+  const filtered=month ? all.filter(e=>e.date.startsWith(month)) : [...all];
+  const list=document.getElementById('entries-list');
+  const sumEl=document.getElementById('entries-sum');
+
+  if(!filtered.length){
+    list.innerHTML='<div class="empty-state">Noch keine Einträge</div>';
+    sumEl.style.display='none';
+    return;
+  }
+
+  list.innerHTML=[...filtered].reverse().map(e=>{
+    const ri=all.indexOf(e);
+    const d=new Date(e.date).toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'});
+    const br=e.hours*(P().lohn||0);
+    const wasRounded=e.rawHours!=null&&Math.abs(e.rawHours-e.hours)>0.001;
+    return `<div class="entry">
+      <div class="entry-main">
+        <div class="entry-date">${d}${wasRounded?'<span class="tag-rounded">gerundet</span>':''}</div>
+        <div class="entry-times">${e.start}–${e.end} · Pause ${e.pause} min</div>
+      </div>
+      <div class="entry-right">
+        <div class="entry-hours">${fmtH(e.hours)}h</div>
+        <div class="entry-dec">${fmtDec(e.hours)}h</div>
+        <div class="entry-lohn">${P().lohn ? fmtE(br)+' €' : '—'}</div>
+      </div>
+      <button class="entry-del" onclick="delEntry(${ri})">✕</button>
+    </div>`;
+  }).join('');
+
+  // Summe
+  const total=filtered.reduce((s,e)=>s+e.hours,0);
+  const totalBr=total*(P().lohn||0);
+  sumEl.style.display='block';
+  sumEl.innerHTML=
+    `<b>Summe (${filtered.length} Tage):</b><br>` +
+    `${fmtH(total)}h &nbsp;·&nbsp; ${fmtDec(total)}h` +
+    (P().lohn ? ` &nbsp;·&nbsp; <span class="sum-green">${fmtE(totalBr)} € Brutto</span>` : '');
+}
+
+function delEntry(i){
+  if(confirm('Eintrag löschen?')){entries[activeProfile].splice(i,1);save();renderEntries();}
+}
+
+/* ===================== AUSWERTUNG ===================== */
+function getFiltered(){
+  const month=document.getElementById('auswert-month').value;
+  return month ? E().filter(e=>e.date.startsWith(month)) : E().filter(e=>e.date.startsWith(curMonth()));
+}
+function renderAuswertung(){
+  const f=getFiltered();
+  const tage=f.length;
+  const total=f.reduce((s,e)=>s+e.hours,0);
+  const schnitt=tage?total/tage:0;
+  const brutto=total*(P().lohn||0);
+  const tagsl=tage?brutto/tage:0;
+  document.getElementById('sum-tage').textContent=tage;
+  document.getElementById('sum-stunden').textContent=fmtH(total)+'h';
+  document.getElementById('sum-stunden-dec').textContent=fmtDec(total)+'h';
+  document.getElementById('sum-schnitt').textContent=fmtH(schnitt)+'h';
+  document.getElementById('sum-schnitt-dec').textContent=fmtDec(schnitt)+'h';
+  document.getElementById('sum-tagslohn').textContent=fmtE(tagsl)+' €';
+  document.getElementById('aus-brutto').textContent=fmtE(brutto)+' €';
+  document.getElementById('aus-sub').textContent=fmtH(total)+'h ('+fmtDec(total)+'h) × '+fmtE(P().lohn||0)+' €/h';
+}
+
+/* ===================== CSV ===================== */
+function exportCSV(){
+  const f=getFiltered();
+  if(!f.length){alert('Keine Einträge für diesen Zeitraum.');return;}
+  const total=f.reduce((s,e)=>s+e.hours,0);
+  const brutto=total*(P().lohn||0);
+  const monat=document.getElementById('auswert-month').value||curMonth();
+
+  let csv='\uFEFF'; // BOM für Excel
+  csv+='Name:;'+(P().name||'—')+'\n';
+  csv+='Firma:;'+(P().firma||'—')+'\n';
+  csv+='Stundenlohn:;'+fmtE(P().lohn||0)+' €\n';
+  csv+='Abrechnungsmodus:;'+(P().rounding==='15min'?'15-Minuten-Blöcke (kaufmännisch)':'Minutengenau')+'\n';
+  csv+='Zeitraum:;'+monthLabel(monat)+'\n\n';
+  csv+='Datum;Wochentag;Beginn;Ende;Pause (min);Stunden (h:mm);Stunden (Dezimal);Brutto (€)\n';
+  f.forEach(e=>{
+    const wd=new Date(e.date).toLocaleDateString('de-DE',{weekday:'long'});
+    csv+=`${e.date};${wd};${e.start};${e.end};${e.pause};${fmtH(e.hours)};${fmtDec(e.hours)};${fmtE(e.hours*(P().lohn||0))}\n`;
+  });
+  csv+='\n';
+  csv+=`Summe;;;;; ${fmtH(total)};${fmtDec(total)};${fmtE(brutto)}\n`;
+  csv+=`Arbeitstage: ${f.length}\n`;
+
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='arbeitszeit_'+(P().firma||'profil'+(activeProfile+1))+'_'+monat+'.csv';
+  a.click();
+}
+
+/* ===================== PDF ===================== */
+function exportPDF(){
+  if(typeof window.jspdf==='undefined'&&typeof jsPDF==='undefined'){
+    alert('PDF-Bibliothek lädt noch. Bitte kurz warten und erneut klicken.');return;
+  }
+  const f=getFiltered();
+  if(!f.length){alert('Keine Einträge für diesen Zeitraum.');return;}
+
+  const {jsPDF}=window.jspdf||window;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const total=f.reduce((s,e)=>s+e.hours,0);
+  const brutto=total*(P().lohn||0);
+  const monat=document.getElementById('auswert-month').value||curMonth();
+
+  const accentRGB = activeProfile===0 ? [50,102,173] : [29,158,117];
+  const green=[29,158,117], gray=[100,100,100], light=[245,247,250], dark=[30,30,30];
+
+  // Header Banner
+  doc.setFillColor(...accentRGB);
+  doc.rect(0,0,210,38,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(20);doc.setFont('helvetica','bold');
+  doc.text('Arbeitszeitnachweis',15,14);
+  doc.setFontSize(10);doc.setFont('helvetica','normal');
+  doc.text(monthLabel(monat),15,22);
+  const nameStr=[P().name,P().firma].filter(Boolean).join(' · ');
+  if(nameStr) doc.text(nameStr,15,29);
+  if(P().lohn){doc.setFontSize(9);doc.text(fmtE(P().lohn)+' €/h Brutto',195,25,{align:'right'});}
+  doc.setFontSize(8);
+  doc.text('Modus: '+(P().rounding==='15min'?'15-Min-Blöcke (kaufm.)':'minutengenau'),195,32,{align:'right'});
+
+  // Kacheln
+  let y=46;
+  const tiles=[
+    {label:'Arbeitstage',    val:String(f.length),           isGreen:false},
+    {label:'Stunden h:mm',   val:fmtH(total)+'h',            isGreen:false},
+    {label:'Stunden Dezimal',val:fmtDec(total)+'h',          isGreen:false},
+    {label:'Brutto gesamt',  val:fmtE(brutto)+' €',          isGreen:true},
+  ];
+  tiles.forEach((t,i)=>{
+    const tx=15+i*48.5;
+    doc.setFillColor(...light);
+    doc.roundedRect(tx,y,46,18,2,2,'F');
+    doc.setTextColor(...gray);doc.setFontSize(7);doc.setFont('helvetica','normal');
+    doc.text(t.label,tx+23,y+6,{align:'center'});
+    doc.setTextColor(...(t.isGreen?green:accentRGB));
+    doc.setFontSize(t.isGreen?10:11);doc.setFont('helvetica','bold');
+    doc.text(t.val,tx+23,y+14,{align:'center'});
+  });
+
+  y+=24;
+
+  // Tabelle
+  const rows=f.map(e=>{
+    const d=new Date(e.date).toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'});
+    const wasRounded=e.rawHours!=null&&Math.abs(e.rawHours-e.hours)>0.001;
+    return [
+      d, e.start, e.end, e.pause+' min',
+      fmtH(e.hours)+'h'+(wasRounded?'*':''),
+      fmtDec(e.hours)+'h',
+      fmtE(e.hours*(P().lohn||0))+' €'
+    ];
+  });
+
+  doc.autoTable({
+    head:[['Datum','Beginn','Ende','Pause','h:mm','Dezimal','Brutto']],
+    body:rows,
+    foot:[['Summe ('+f.length+' Tage)','','','',fmtH(total)+'h',fmtDec(total)+'h',fmtE(brutto)+' €']],
+    startY:y,
+    margin:{left:15,right:15},
+    styles:{fontSize:9,cellPadding:3,textColor:dark},
+    headStyles:{fillColor:accentRGB,textColor:255,fontStyle:'bold'},
+    footStyles:{fillColor:light,textColor:dark,fontStyle:'bold'},
+    alternateRowStyles:{fillColor:[250,251,253]},
+    columnStyles:{
+      0:{cellWidth:44},
+      1:{cellWidth:18,halign:'center'},
+      2:{cellWidth:18,halign:'center'},
+      3:{cellWidth:18,halign:'center'},
+      4:{cellWidth:22,halign:'right'},
+      5:{cellWidth:24,halign:'right'},
+      6:{cellWidth:27,halign:'right'},
+    },
+    didDrawPage:()=>{
+      const pg=doc.internal.getCurrentPageInfo().pageNumber;
+      doc.setFontSize(8);doc.setTextColor(...gray);
+      doc.text('Seite '+pg,105,290,{align:'center'});
+      doc.text('Erstellt am '+new Date().toLocaleDateString('de-DE'),195,290,{align:'right'});
+      if(P().rounding==='15min') doc.text('* kaufmännisch auf 15-Min-Blöcke gerundet',15,290);
+    }
+  });
+
+  // Unterschriften
+  const fy=doc.lastAutoTable.finalY+18;
+  if(fy<255){
+    doc.setDrawColor(160,160,160);doc.setLineWidth(0.3);
+    doc.line(15,fy+10,80,fy+10);
+    doc.line(125,fy+10,195,fy+10);
+    doc.setFontSize(8);doc.setTextColor(...gray);
+    doc.text('Datum / Unterschrift Mitarbeiter',47,fy+16,{align:'center'});
+    doc.text('Datum / Unterschrift Arbeitgeber',160,fy+16,{align:'center'});
+  }
+
+  doc.save('arbeitszeit_'+(P().firma||'profil'+(activeProfile+1))+'_'+monat+'.pdf');
+}
+
+/* ===================== INIT ===================== */
+function init(){
+  document.getElementById('timer-date').value=todayStr();
+  document.getElementById('m-date').value=todayStr();
+  applyAccent();
+  // Restore toggle state visually
+  [0,1].forEach(i=>{
+    document.getElementById('tog-'+i).classList.toggle('active',i===activeProfile);
+    if(i===activeProfile) document.getElementById('tog-'+i).style.color=ACCENTS[activeProfile];
+  });
+  updateHeader();
+  updateTimerHint();
+  document.getElementById('m-pause').value=P().pause||15;
+  renderProfilForm();
+  populateSelects();
+  renderEntries();
+}
+init();
+</script>
+</body>
+</html>
